@@ -40,7 +40,11 @@ the **fit check** (clearance or interference between the silhouette and each kno
 - **Packaging**: a hand-drawn hull wrapped around a battery and motor box, with a clearance check. Its 25°
   tail separates, so the 2D tunnel shows vortex shedding in the wake (lift RMS ≈ 0.27 at Re 1,000).
   That shows what a packaging constraint costs.
-- **Ideal**: a low-drag Kulfan CST body of revolution, `y = L·ψ^0.5·(1−ψ)·Σ A_i·B_i,5(ψ)` with
+- **Ideal**: *where it comes from:* it's a Kulfan CST body, the standard shape equation for airfoils and
+  aircraft bodies (Kulfan 2008). Its coefficients won a seven-shape sweep through this app's solver, which was
+  first checked against the published drag data below. It was the only shape with a steady wake at
+  Re 1,000 and had the lowest drag per volume, and its 11° tail stays under the ~15° angle where flow
+  separates. The details: a low-drag Kulfan CST body of revolution, `y = L·ψ^0.5·(1−ψ)·Σ A_i·B_i,5(ψ)` with
   `A = [0.27, 0.30, 0.28, 0.20, 0.13, 0.08]`. It has L/D 4.8, max diameter at 27% of the length, an 11°
   max aft slope and a sharp tail. It came out of a sweep in `validation/design.js`: at the default
   Re 1,000 its wake is steady (lift RMS ≈ 1e-4), and it has the lowest Hoerner C_D per volume^(2/3) of the
@@ -152,5 +156,8 @@ Benchmark drag data used for the validation and for the bluff-body reference val
   https://books.google.com/books/about/Fluid_dynamic_Drag.html?id=abU8AAAAIAAJ
 - Form drag overview (ScienceDirect Topics). Summary of the Hoerner body-of-revolution form factor.
   https://www.sciencedirect.com/topics/engineering/form-drag
+- Kulfan, B. M. (2008). Universal parametric geometry representation method. *Journal of Aircraft* 45(1),
+  142–158. This is the CST (class/shape transformation) form used for the fit and for the ideal body.
+  https://doi.org/10.2514/1.29958
 - Maskell, E. C. (1963). A theory of the blockage effects on bluff bodies and stalled wings in a closed
   wind tunnel. ARC R&M 3400. This is the form of the blockage correction; θ here was fitted to this tunnel.

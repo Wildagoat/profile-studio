@@ -93,7 +93,7 @@
   <select id="exampleSel" title="Load an example profile. It replaces the current project (Undo brings it back).">
     <option value="" selected>Load example…</option>
     <option value="packaging">Packaging: hull around battery + motor</option>
-    <option value="ideal">Ideal: low-drag body (CST, L/D 4.8)</option>
+    <option value="ideal" title="Kulfan CST body; coefficients chosen by a validated sweep (see README)">Ideal: low-drag body (CST, L/D 4.8)</option>
     <option value="bad">Bad: flat-faced can around the same parts</option>
   </select>
   <button id="openBtn">Open…</button>
@@ -627,13 +627,13 @@ function refreshMatches(changed) {
 /* ---------- persistence & undo ---------- */
 function serialize() {
   return JSON.stringify({
-    v: 1, units: S.units, mirror: S.mirror, nextId: S.nextId, guides: S.guides,
+    v: 1, units: S.units, mirror: S.mirror, nextId: S.nextId, example: S.example || undefined, guides: S.guides,
     curves: S.curves.map(c => ({ id: c.id, name: c.name, raw: c.raw, opts: c.opts, snapStart: c.snapStart, snapEnd: c.snapEnd, fit: c.fit, manual: c.manual })),
   });
 }
 function restore(json) {
   const o = typeof json === 'string' ? JSON.parse(json) : json;
-  S = { guides: o.guides || [], curves: o.curves || [], mirror: o.mirror !== false, units: o.units || 'mm', nextId: o.nextId || 1 };
+  S = { guides: o.guides || [], curves: o.curves || [], mirror: o.mirror !== false, units: o.units || 'mm', nextId: o.nextId || 1, example: o.example || '' };
   for (const c of S.curves) { c.opts = { ...DEF_OPTS, ...c.opts }; processCurve(c, true); }
   if (UI.sel && !findItem(UI.sel)) UI.sel = null;
   syncViewControls();
@@ -1511,7 +1511,7 @@ function renderLists() {
 }
 function renderProfile() {
   const gaps = chainGaps(), m = profileMetrics(), u = S.units;
-  let w = '';
+  let w = Object.hasOwn(EXAMPLE_NOTES, S.example || "") ? `<div class="hint" style="margin-bottom:6px">${EXAMPLE_NOTES[S.example]}</div>` : '';
   for (const g of gaps) w += `<div class="hint warnc">Gap of ${fmt(g.d, 3)} ${u} between ${esc(g.a)} and ${esc(g.b)}: closed with a straight line. Redraw with the end snapped.</div>`;
   if (m && S.mirror && m.crosses) w += `<div class="hint bad">The upper profile crosses the axis. The mirrored silhouette will overlap itself.</div>`;
   if (m && S.mirror && m.rNoseEnd > 0.02 * m.rmax) w += `<div class="hint warnc">Nose isn't on the axis (r = ${fmt(m.rNoseEnd, 3)}), so it's a flat front face. Snap the first point to the axis for a closed nose.</div>`;
@@ -1784,6 +1784,10 @@ function loadPackagingExample() {
    Chosen from a sweep of CST/NACA bodies (validation/design.js): at the default Re 1,000 its wake is steady
    (lift RMS ≈ 1e-4 vs 0.27 for the packaging hull, whose 25° tail sheds vortices), and it has the lowest
    Hoerner C_D per volume^(2/3) of the set. Tail slope stays below the ~15° where turbulent flow separates. */
+const EXAMPLE_NOTES = { ideal:
+    '<b>Where this shape comes from:</b> a Kulfan CST body (the standard airfoil and fuselage shape equation, Kulfan 2008). '
+    + 'Its coefficients won a seven-shape sweep through this app’s solver, which was first checked against published drag data. '
+    + 'It was the only shape with a steady wake at Re 1,000 and had the lowest drag per volume, and its 11° tail stays under the ~15° angle where flow separates.' };
 const IDEAL_A = [0.27, 0.30, 0.28, 0.20, 0.13, 0.08];
 function loadIdealExample() {
   S = { guides: [], curves: [], mirror: true, units: 'mm', nextId: 1 };
@@ -1799,6 +1803,7 @@ function loadIdealExample() {
   G({ type: 'dim', p1: [xm, -rm], p2: [xm, rm] });
   const c = { id: S.nextId++, name: 'Ideal hull', raw, opts: { ...DEF_OPTS, mode: 'cst', N1: 0.5, N2: 1, cstOrder: 5, n: 96, smooth: 0, startTan: 'vertical' },
     snapStart: { kind: 'origin', dir: [1, 0] }, snapEnd: { kind: 'on axis', dir: [1, 0] }, manual: false };
+  S.example = 'ideal';
   S.curves.push(c); processCurve(c);
   UI.sel = c.id; commit(); syncViewControls(); renderPanel(); fitView(); setTool('select');
   toast('Ideal body: CST, L/D 4.8, 11° tail. Steady wake at the default Re 1,000');
