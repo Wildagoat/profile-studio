@@ -5,7 +5,7 @@ mirror it about the x-axis, and run it through a 2D wind tunnel. Single-file sta
 (`index.html`), no build step, no dependencies.
 
 ## Run
-Launch config **`profile-studio`** (port 4192), or:
+Launch config **`profile-studio`** (port 4192; `profile-studio-alt` serves the same folder on 4193), or:
 ```
 python -m http.server 4192
 ```
@@ -32,9 +32,38 @@ then open http://localhost:4192 .
 5. **Mirror** about the x-axis (on by default). The closed silhouette is part of the equation:
    `P(s) = U(s)` for `s ∈ [0,K]` and `(Uₓ(2K−s), −U_y(2K−s))` for `s ∈ [K,2K]`.
 6. **Export**: equation text, Python (numpy `U(s)`, `P(s)`, `sample()`), Desmos expressions, SVG, CSV.
+7. **DXF for Onshape** (R2000, units from the Units setting). **Closed silhouette** gives the mirrored
+   profile plus a vertical line across any flat end face. **Upper half + axis** gives a closed region to
+   **Revolve** about its axis line. Curves export as true SPLINE entities, not polylines: a Bézier curve
+   becomes one exact clamped cubic B-spline, a polynomial an exact degree-n spline, and CST is re-fitted to
+   within 10⁻⁴·L. Lines stay LINEs. Optional layers: GUIDES (lines, circles, points) and PARTS (part boxes).
+   In Onshape, open a sketch and use **Insert DXF/DWG**. Check: `node validation/dxf.js && python validation/dxf_check.py`
+   (ezdxf audit clean, closed loops, splines within 10⁻¹¹ mm of the app's curve for Bézier/polynomial fits).
 
 The panel also shows the length, max diameter, fineness, revolved volume, wetted area, tail slope and
 the **fit check** (clearance or interference between the silhouette and each known part).
+
+## Sketch constraints
+- **Points are easy to grab.** In Select mode every pickable point (line and dimension ends, part corners,
+  circle centres, guide points, curve ends, the origin) shows as a dot and lights up on hover (11 px pick
+  radius, 13 px snap radius). Points win over lines when they overlap.
+- **Auto relations (CAD-style).** Dropping a point on another point makes them **coincident**. Dropping it on
+  a line adds **on line**, on a line's midpoint **midpoint**, on the x-axis **on axis**, on an intersection
+  both lines, and on a circle **on circle**. A new line within 2.5° of level or plumb snaps square and gets
+  **horizontal** / **vertical**, and a typed length becomes a **locked length**. Hold Alt to skip all of these.
+- **Manual relations.** Shift-click points, lines or circles, then pick from the buttons that fit the
+  selection: coincident, horizontal / vertical (two points), symmetric about the axis, on axis, fix,
+  horizontal / vertical line, lock length, parallel, perpendicular, equal length, on line, midpoint, on
+  circle, tangent, concentric, equal radius. Every relation shows as a glyph badge on the canvas and a row
+  in the Constraints list, where hovering highlights it and ✕ deletes it.
+- **Solver.** Position-based and iterative, with numeric gradients. What you drag or type into the panel is
+  soft-pinned, so it follows the cursor but still obeys its own relations (an on-axis point slides along
+  the axis). A drag or a new relation that would make the sketch unsolvable is rejected, not half-applied.
+- **Known parts** (part boxes) are size-locked by default: dragging a corner moves the whole part. Untick
+  "Size locked" to resize by corners.
+- **Curves follow, never drive.** A curve end coincident with a guide point, on the axis or on a line moves
+  with that geometry. The stroke bends with a fading correction and is re-fitted, and hand-edited fits keep
+  their edits. Dragging a curve end is also allowed, and it snaps and joins the same way.
 
 ## Examples (header → Load example…)
 - **Packaging**: a hand-drawn hull wrapped around a battery and motor box, with a clearance check. Its 25°
@@ -82,6 +111,47 @@ volume^(2/3) or on the 2D wake instead.
   or is closed down to the axis with a vertical line (any straight run within 2° of vertical at an end). A
   flat base counts as a 90° tail slope. Below fineness L/D = 2 the card warns that the correlation is
   invalid and lists measured bluff-body values instead.
+
+## Test report & star rating
+**■ End test** (or auto-end at N flow-throughs) stops the run and opens a printable report sheet.
+**★ Run standard test** sets Re 1,000 · 0° · 170 rows · 24% size and auto-ends at 6 flow-throughs (about 2 min).
+Every 25 steps the solver samples the metrics into `Sim.series`. The report scores the second half of the run
+(the first half is "settling") and shows:
+- a 0–10 score in ½-star steps, a verdict, and the test conditions (a banner says whether they match the benchmark)
+- a scorecard (yours vs ideal, a score bar and points per metric)
+- six time plots against the ideal line: C_D, C_L, wake width, recirculation area, tail C_p, attached length
+- the final vorticity field and your silhouette overlaid on the ideal body at the same length
+- improvement tips for the weak metrics, plus the packaging clearances
+- **Download report (.html)** (self-contained, images embedded) and **Print / PDF**
+
+**Defining metrics** (what makes the ideal body good), their weights (they sum to 10), and how each is scored:
+
+| Metric | Weight | Ideal (Re 1,000) | Score 0 → 1 |
+|---|---|---|---|
+| Drag per volume, C_D on V^(2/3) (Hoerner, real scale, ideal scaled to your length) | 2.5 | 0.063 | 1 − (ratio − 1)/1.5 |
+| Wake steadiness, C_L RMS (vortex shedding) | 2.0 | 0.0001 | 1 at ≤ 0.005, 0 at ≥ 0.3 (log) |
+| Wake width ÷ frontal height, ½ body length behind the tail | 1.5 | 1.82 | 1 − (ratio − 1)/1.5 |
+| C_D, 2D, blockage-corrected | 1.0 | 0.817 | 1 − (ratio − 1)/0.5 |
+| Recirculation (reversed-flow) area ÷ H² | 1.0 | 0.63 | 1 − (excess)/1.0 |
+| Tail pressure recovery, mean C_p on the rear 15% | 1.0 | −0.29 | 1 − (deficit)/0.4 |
+| Attached flow, fraction of the length before first reversal | 0.5 | 69% | ratio to ideal |
+| Max tail slope (geometry) | 0.5 | 11° | 1 at ≤ 12°, 0 at 30° |
+
+**Benchmark.** The ideal CST body flown through this solver at the standard conditions, recorded for Re
+500, 1,000 and 2,000 (`validation/benchmark-ideal.json`, embedded in the app as `BENCHMARK`). At other
+conditions the nearest-Re benchmark is used and the rating is marked **provisional**. Calibration (standard
+test, `node validation/rating.js`):
+
+| Shape | ★ | Why |
+|---|---|---|
+| Ideal body | 10.0 | reproduces its own benchmark (in-app run: every metric 100%) |
+| Revolved NACA 0025 | 7.5 | good drag, but a weak vortex street (C_L RMS 0.074) |
+| Packaging hull | 5.5 (5.0 hand-drawn in app) | 25–27° tail: sheds (C_L RMS 0.39), wake twice as wide |
+| Flat-faced can | 1.0 | separates at the nose corners, 5.8× the drag per volume |
+
+To re-record: `node validation/benchmark.js ideal '{"Re":1000}'` (≈ 100 s per run; any shape in
+`shapes.js` / `design.js`, or `packaging` / `bad`), save the output to `validation/out/bench_<shape>_1000.json`,
+then run `node validation/rating.js`.
 
 ## Caveats
 - The lattice sim is **2D planar** (it treats the shape as an extruded profile, not the revolved body) and runs

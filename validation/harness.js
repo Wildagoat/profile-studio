@@ -25,8 +25,8 @@ function makeEnv(opts) {
     grabLine('const clamp ='), grabLine('const dist ='), grabLine('const fmt ='), grabLine('const UNITS ='),
     grabFn('bbox'), grabFn('profilePolygon'), grabFn('profileMetrics'),
     grabLine('const EX ='), grabLine('const WT ='), grabLine('const OPP ='), grabLine('const Sim ='),
-    grabLine('const reVal ='), simBuild, grabFn('lbmStep'), grabFn('coeffs'), grabFn('renderEstimate'),
-    'return { Sim, simBuild, lbmStep, coeffs, renderEstimate, profileMetrics };',
+    grabLine('const reVal ='), simBuild, grabFn('lbmStep'), grabFn('sampleFlow'), grabFn('testStats'), grabFn('coeffs'), grabFn('hoerner'), grabFn('renderEstimate'),
+    'return { Sim, simBuild, lbmStep, coeffs, testStats, hoerner, renderEstimate, profileMetrics };',
   ].join('\n');
   const noop = () => {};
   const off = { width: 0, height: 0 };
