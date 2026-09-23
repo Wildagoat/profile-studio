@@ -94,7 +94,7 @@
     <option value="" selected>Load example…</option>
     <option value="packaging">Packaging: hull around battery + motor</option>
     <option value="ideal">Ideal: low-drag body (CST, L/D 4.8)</option>
-    <option value="bad" disabled>Bad: bluff body (coming soon)</option>
+    <option value="bad">Bad: flat-faced can around the same parts</option>
   </select>
   <button id="openBtn">Open…</button>
   <button id="saveBtn">Save project</button>
@@ -129,7 +129,7 @@
         <li>The stroke becomes evenly spaced <b>dots</b>, is smoothed, then fitted to a <b>parametric curve</b>.</li>
         <li>It is mirrored about the x-axis into a closed silhouette → <b>② Aero sim</b>.</li>
       </ol>
-      <div class="btns"><button class="primary" id="exampleBtn2">Load ideal body</button><button id="exampleBtn3">Load packaging example</button></div>
+      <div class="btns"><button class="primary" id="exampleBtn2">Load ideal body</button><button id="exampleBtn3">Load packaging example</button><button id="exampleBtn4">Load bad example</button></div>
     </div></div>
   </div>
   <aside id="panel">
@@ -1803,9 +1803,33 @@ function loadIdealExample() {
   UI.sel = c.id; commit(); syncViewControls(); renderPanel(); fitView(); setTool('select');
   toast('Ideal body: CST, L/D 4.8, 11° tail. Steady wake at the default Re 1,000');
 }
-const EXAMPLES = { packaging: loadPackagingExample, ideal: loadIdealExample };
+/* Bad example: the naive enclosure, a flat-faced can (r = 18 mm, 3 mm over the battery) around the same
+   battery + motor as the packaging example. Flat nose face, straight sides and a flat base: the flow
+   separates at the front corners and again at the base, so the 2D tunnel sheds hard (lift RMS ≈ 0.28 at
+   Re 1,000) and the revolved card reads C_D ≈ 1.07 (Hoerner, flat-faced axial cylinder: ≈ 0.8–0.9),
+   about 4× the packaging hull's drag and 10× the ideal body's at 10 m/s. */
+function loadBadExample() {
+  S = { guides: [], curves: [], mirror: true, units: 'mm', nextId: 1 };
+  const G = g => { g.id = S.nextId++; S.guides.push(g); };
+  const L = 160, R = 18;
+  G({ type: 'line', p1: [0, 0], p2: [L, 0], inf: false });
+  G({ type: 'dim', p1: [0, 0], p2: [L, 0] });
+  G({ type: 'rect', name: 'Battery', p1: [38, -15], p2: [98, 15] });
+  G({ type: 'rect', name: 'Motor', p1: [104, -9], p2: [128, 9] });
+  const seg = (name, a, b) => {
+    const raw = []; for (let i = 0; i <= 20; i++) raw.push([a[0] + (b[0] - a[0]) * i / 20, a[1] + (b[1] - a[1]) * i / 20]);
+    const c = { id: S.nextId++, name, raw, opts: { ...DEF_OPTS, mode: 'line', smooth: 0 }, snapStart: null, snapEnd: null, manual: false };
+    S.curves.push(c); processCurve(c); return c;
+  };
+  seg('Nose face', [0, 0], [0, R]);
+  const side = seg('Side', [0, R], [L, R]);
+  seg('Base', [L, R], [L, 0]);
+  UI.sel = side.id; commit(); syncViewControls(); renderPanel(); fitView(); setTool('select');
+  toast('Bad body: flat-faced can. Flow separates at the nose corners and the base');
+}
+const EXAMPLES = { packaging: loadPackagingExample, ideal: loadIdealExample, bad: loadBadExample };
 $('#exampleSel').onchange = e => { const f = EXAMPLES[e.target.value]; e.target.value = ''; if (f) f(); };
-$('#exampleBtn2').onclick = loadIdealExample; $('#exampleBtn3').onclick = loadPackagingExample;
+$('#exampleBtn2').onclick = loadIdealExample; $('#exampleBtn3').onclick = loadPackagingExample; $('#exampleBtn4').onclick = loadBadExample;
 
 /* =====================================================================
    AERO SIM — D2Q9 lattice-Boltzmann (BGK + Smagorinsky), tracer particles

@@ -46,7 +46,20 @@ the **fit check** (clearance or interference between the silhouette and each kno
   Re 1,000 its wake is steady (lift RMS ≈ 1e-4), and it has the lowest Hoerner C_D per volume^(2/3) of the
   candidates (0.063 vs 0.074 for the packaging hull). At Re ≳ 3,000 even this shape sheds in the 2D
   tunnel, a 2D laminar-wake effect that a real 3D turbulent body doesn't share to the same degree.
-- **Bad**: planned.
+- **Bad**: the naive enclosure, a flat-faced can (r = 18 mm, 3 mm over the battery) around the same battery
+  and motor. The flow separates at the nose corners and at the flat base. The 2D tunnel sheds hard (lift
+  RMS ≈ 0.28), and the revolved card reads C_D ≈ 1.07 against Hoerner's ≈ 0.8–0.9 for a flat-faced axial
+  cylinder.
+
+| Example | L/D | Max tail slope | 2D wake (Re 1,000) | Card C_D frontal | C_D per volume^(2/3) | Drag at 10 m/s |
+|---|---|---|---|---|---|---|
+| Ideal | 4.8 | 11° | steady | 0.116 | 0.063 | 6.1 mN |
+| Packaging | 2.9 | 25° | sheds | 0.111 | 0.074 | 16.4 mN |
+| Bad | 4.4 | 90° (flat base) | sheds hard | 1.07 | 0.364 | 65.3 mN |
+
+On a frontal-area basis the card rates the packaging hull no worse than the ideal body, because the Hoerner
+correlation has no separation penalty for a 25° tail beyond the warning. Compare examples on drag per
+volume^(2/3) or on the 2D wake instead.
 
 ## Aero sim
 - **D2Q9 lattice-Boltzmann** (BGK + Smagorinsky), uniform inlet, zero-gradient outlet, free-slip walls,
